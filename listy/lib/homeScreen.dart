@@ -1,64 +1,168 @@
 import 'package:flutter/material.dart';
-import 'package:listy/model.dart';
 
-//Adicionar o DateFormater
+import '../banco/data_acess_object.dart';
+import '../banco/model.dart';
 
-class HomeScreen extends StatelessWidget {
-const HomeScreen({ Key? key }) : super(key: key);
+class HomeScreen extends StatefulWidget {
+  const HomeScreen({super.key});
 
   @override
-  Widget build(BuildContext context){
+  State<HomeScreen> createState() => _HomeScreenState();
+}
+
+class _HomeScreenState extends State<HomeScreen> {
+  late Future<List<Lista>> _listasFuture;
+
+  @override
+  void initState() {
+    super.initState();
+    _listasFuture = DataAccessObject.obterListas();
+  }
+
+  Future<void> _recarregarListas() async {
+    final novaConsulta = DataAccessObject.obterListas();
+
+    setState(() {
+      _listasFuture = novaConsulta;
+    });
+
+    try {
+      await novaConsulta;
+    } catch (_) {
+      // ERROR
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('ListY',
-        style: TextStyle(
-          fontWeight: FontWeight.bold
-        ),),
+        title: const Text('ListY'),
       ),
-      body: Container(
-        color: Colors.black26,
-        child: Padding(
-          padding: const EdgeInsetsGeometry.all(8),
-          child: ListView(
-            children: [
-              ListaTile(nome: "co", modificada: DateTime.now(), itensTotais: 6, itensChecados: 3, total: 200),
-              ListaTile(nome: "co", modificada: DateTime.now(), itensTotais: 6, itensChecados: 3, total: 200),
-              ListaTile(nome: "co", modificada: DateTime.now(), itensTotais: 6, itensChecados: 3, total: 200)
-              ],
-          ),
-          ),
+      body: RefreshIndicator(
+        onRefresh: _recarregarListas,
+        child: FutureBuilder<List<Lista>>(
+          future: _listasFuture,
+          builder: (context, snapshot) {
+            if (snapshot.connectionState == ConnectionState.waiting) {
+              return ListView(
+                physics: const AlwaysScrollableScrollPhysics(),
+                children: const [
+                  SizedBox(
+                    height: 300,
+                    child: Center(child: CircularProgressIndicator()),
+                  ),
+                ],
+              );
+            }
+
+            if (snapshot.hasError) {
+              return ListView(
+                physics: const AlwaysScrollableScrollPhysics(),
+                children: const [
+                  SizedBox(
+                    height: 300,
+                    child: Center(
+                      child: Text('Não foi possível carregar as listas.'),
+                    ),
+                  ),
+                ],
+              );
+            }
+
+            final listas = snapshot.data ?? [];
+
+            if (listas.isEmpty) {
+              return ListView(
+                physics: const AlwaysScrollableScrollPhysics(),
+                children: const [
+                  SizedBox(
+                    height: 300,
+                    child: Center(child: Text('Você ainda não tem listas.')),
+                  ),
+                ],
+              );
+            }
+
+            return ListView.separated(
+              physics: const AlwaysScrollableScrollPhysics(),
+              itemCount: listas.length,
+              separatorBuilder: (context, index) => const Divider(height: 1),
+              itemBuilder: (context, index) {
+                final lista = listas[index];
+                final quantidadeChecados =
+                    lista.items.where((item) => item.checado).length;
+                final valorTotal = lista.items
+                    .where((item) => item.checado)
+                    .fold<double>(
+                      0,
+                      (total, item) => total + item.preco * item.quantidade,
+                    );
+
+                return ListTile(
+                  title: Text(lista.nome),
+                  subtitle: Text(
+                    'Alterada em ${_formatarData(lista.modificado)}\n'
+                    'Itens: $quantidadeChecados/${lista.items.length} checados'
+                    ' • Total: ${_formatarMoeda(valorTotal)}',
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  trailing: IconButton(
+                    tooltip: 'Informações da lista',
+                    icon: const Icon(Icons.info_outline),
+                    onPressed: () => _mostrarInformacoes(
+                      context,
+                      lista: lista,
+                      quantidadeChecados: quantidadeChecados,
+                      valorTotal: valorTotal,
+                    ),
+                  ),
+                );
+              },
+            );
+          },
+        ),
       ),
-      floatingActionButton: 
-        FloatingActionButton(
-          onPressed: (){},
-          child: Icon(Icons.list_alt_outlined),
+    );
+  }
+
+  void _mostrarInformacoes(
+    BuildContext context, {
+    required Lista lista,
+    required int quantidadeChecados,
+    required double valorTotal,
+  }) {
+    showDialog<void>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(lista.nome),
+        content: Text(
+          'Última alteração: ${_formatarData(lista.modificado)}\n'
+          'Itens checados: $quantidadeChecados/${lista.items.length}\n'
+          'Valor dos itens checados: ${_formatarMoeda(valorTotal)}',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Fechar'),
           ),
+        ],
+      ),
     );
   }
 }
 
-class ListaTile extends StatelessWidget {
-  final String nome;
-  final DateTime modificada;
-  final int itensTotais;
-  final int itensChecados;
-  final double total;
+String _formatarData(DateTime data) {
+  final local = data.toLocal();
 
-ListaTile({ 
-  super.key,
-  required this.nome,
-  required this.modificada,
-  required this.itensTotais,
-  required this.itensChecados,
-  required this.total, 
-  });
+  String doisDigitos(int valor) => valor.toString().padLeft(2, '0');
 
-  @override
-  Widget build(BuildContext context){
-    return ListTile(
-      title: Text(nome),
-      subtitle: Text("$itensChecados/$itensTotais, valor estimado em ${total.toStringAsFixed(2)}."),
-      trailing: Icon(Icons.info),
-    );
-  }
+  return '${doisDigitos(local.day)}/${doisDigitos(local.month)}/${local.year} '
+      '${doisDigitos(local.hour)}:${doisDigitos(local.minute)}';
+}
+
+String _formatarMoeda(double valor) {
+  final valorFormatado = valor.toStringAsFixed(2).replaceAll('.', ',');
+  return 'R\$ $valorFormatado';
 }

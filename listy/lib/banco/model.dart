@@ -8,8 +8,6 @@ DateTime? parseNullDate(dynamic value) {
 class Lista {
   final int? idLista; // Pode ser null antes de salvar (autoincrement)
   final String nome;
-  final String icone;
-  final Color cor;
   final DateTime criado;
   final DateTime modificado;
   final DateTime? concluida;
@@ -18,8 +16,6 @@ class Lista {
   Lista({
     this.idLista,
     required this.nome,
-    required this.icone,
-    required this.cor,
     required this.criado,
     required this.modificado,
     this.concluida,
@@ -29,8 +25,6 @@ class Lista {
   Lista patch({
     int? idLista,
     String? nome,
-    String? icone,
-    Color? cor,
     DateTime? criado,
     DateTime? modificado,
     DateTime? concluida,
@@ -40,8 +34,6 @@ class Lista {
     return Lista(
       idLista: idLista ?? this.idLista,
       nome: nome ?? this.nome,
-      icone: icone ?? this.icone,
-      cor: cor ?? this.cor,
       criado: criado ?? this.criado,
       modificado: modificado ?? this.modificado,
       concluida: limparConcluida ? null : (concluida ?? this.concluida),
@@ -54,8 +46,6 @@ class Lista {
     return Lista(
       idLista: map['id_lista'] as int?,
       nome: map['nome'] as String,
-      icone: map['icone'] as String,
-      cor: Color(map['cor'] as int),
       criado: DateTime.parse(map['criado'] as String),
       modificado: DateTime.parse(map['modificado'] as String),
       concluida: parseNullDate(map['concluida']),
@@ -68,8 +58,6 @@ class Lista {
     return {
       if (idLista != null) 'id_lista': idLista,
       'nome': nome,
-      'icone': icone,
-      'cor': cor.toARGB32(),
       'criado': criado.toIso8601String(),
       'modificado': modificado.toIso8601String(),
       'concluida': concluida?.toIso8601String(),
