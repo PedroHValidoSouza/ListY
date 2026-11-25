@@ -1,12 +1,10 @@
-import 'package:flutter/material.dart';
-
 DateTime? parseNullDate(dynamic value) {
   if (value == null || (value is String && value.isEmpty)) return null;
   return DateTime.tryParse(value as String);
 }
 
 class Lista {
-  final int? idLista; // Pode ser null antes de salvar (autoincrement)
+  final int? idLista;
   final String nome;
   final DateTime criado;
   final DateTime modificado;
@@ -41,7 +39,6 @@ class Lista {
     );
   }
 
-  // Converte linha do SQLite -> Objeto Lista
   factory Lista.fromMap(Map<String, dynamic> map, {List<Item> items = const []}) {
     return Lista(
       idLista: map['id_lista'] as int?,
@@ -53,7 +50,6 @@ class Lista {
     );
   }
 
-  // Converte Objeto Lista -> Linha do SQLite (sem 'items', que vão para outra tabela)
   Map<String, dynamic> toMap() {
     return {
       if (idLista != null) 'id_lista': idLista,
@@ -67,7 +63,7 @@ class Lista {
 
 class Item {
   final int? idItem;
-  final int idLista; // Chave estrangeira ligando à Lista
+  final int idLista;
   final bool checado;
   final DateTime? checadoEm;
   final String nome;
@@ -109,7 +105,6 @@ class Item {
     );
   }
 
-  // Converte linha do SQLite -> Objeto Item (0/1 vira bool)
   factory Item.fromMap(Map<String, dynamic> map) {
     return Item(
       idItem: map['id_item'] as int?,
@@ -123,7 +118,6 @@ class Item {
     );
   }
 
-  // Converte Objeto Item -> Linha do SQLite (bool vira 0/1)
   Map<String, dynamic> toMap() {
     return {
       if (idItem != null) 'id_item': idItem,

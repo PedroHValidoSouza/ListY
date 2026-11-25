@@ -2,15 +2,14 @@ import 'package:sqflite/sqflite.dart' as sql;
 import 'model.dart';
 
 class DataAccessObject {
-  static const int _versaoBanco = 1;
-
   static Future<sql.Database> abrirBanco() async {
     return sql.openDatabase(
       'listadecompras.db',
-      version: _versaoBanco,
+      version: 3,
       onConfigure: (database) async {
         await database.execute('PRAGMA foreign_keys = ON');
       },
+      
       onCreate: (database, version) async {
         await database.execute('''
           CREATE TABLE listas (
